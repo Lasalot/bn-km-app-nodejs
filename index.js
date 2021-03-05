@@ -34,31 +34,42 @@ app.post("/api/distance", (req,res) => {
 
 console.log(req.body)
 const activity = req.body.activity_type
-if( activity === "Run") {
-  const kilometers = parseInt(req.body.kilometers,10)
-  con.query(`INSERT INTO kmApp.done_distances (kilometers,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
-    if (err) throw err;
-    res.json("Entry added for Run !")
-    })
+if (req.body.password != process.env.SECRETPASS) {
+  res.send("You have no permission to post data")
+} else {
+
+  if( activity === "Run") {
+    const kilometers = parseInt(req.body.kilometers,10)
+    con.query(`INSERT INTO kmApp.done_distances (kilometers,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+      if (err) throw err;
+      res.json("Entry added for Run !")
+      })
+
+  }
+
+
+  else if (activity === "Bike") {
+    const kilometers = parseInt(req.body.kilometers,10)
+    con.query(`INSERT INTO kmApp.done_distances (steps,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+      if (err) throw err;
+      res.json("Entry added for Bike!")
+      })
+  }
+
+  else if (activity === "Walk") {
+    const steps = parseInt(req.body.steps,10)
+    con.query(`INSERT INTO kmApp.done_distances (steps,time, who, activity_type) VALUES ('${steps}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+      if (err) throw err;
+      res.json("Entry added for Walk!")
+      })
+  }
 
 }
 
 
-else if (activity === "Bike") {
-  const kilometers = parseInt(req.body.kilometers,10)
-  con.query(`INSERT INTO kmApp.done_distances (steps,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
-    if (err) throw err;
-    res.json("Entry added for Bike!")
-    })
-}
 
-else if (activity === "Walk") {
-  const steps = parseInt(req.body.steps,10)
-  con.query(`INSERT INTO kmApp.done_distances (steps,time, who, activity_type) VALUES ('${steps}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
-    if (err) throw err;
-    res.json("Entry added for Walk!")
-    })
-} })
+
+ })
 
 //Get all distance in SUM
 app.get("/api/getoveralldistance", (req,res) => {
