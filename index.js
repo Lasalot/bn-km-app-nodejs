@@ -88,10 +88,10 @@ con.query('SELECT * from done_distances', function(err,result) {
 })
 })
 
-app.get('/api/getuserdata/:user', (req,res) => {
-  const user = req.params.user
+app.get('/api/getuserdata', (req,res) => {
+  const user = req.body.user
   console.log(user)
-  con.query(`SELECT * FROM done_distances WHERE who = "${user}"`, function(err,result){
+  con.query(`SELECT * FROM done_distances WHERE who="${user}"`, function(err,result){
     if(err) throw err;
     res.send(result);
   })
