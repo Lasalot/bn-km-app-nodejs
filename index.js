@@ -32,7 +32,7 @@ con.connect(function(err) {
 //Insert data from Form
 app.post("/api/distance", (req,res) => {
 
-console.log(req.body)
+
 const activity = req.body.activity_type
 if (req.body.password != process.env.SECRETPASS) {
   res.send("You have no permission to post data")
@@ -50,7 +50,7 @@ if (req.body.password != process.env.SECRETPASS) {
 
   else if (activity === "Bike") {
     const kilometers = parseInt(req.body.kilometers,10)
-    con.query(`INSERT INTO kmApp.done_distances (steps,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+    con.query(`INSERT INTO kmApp.done_distances (kilometers,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
       if (err) throw err;
       res.json("Entry added for Bike!")
       })
@@ -58,7 +58,9 @@ if (req.body.password != process.env.SECRETPASS) {
 
   else if (activity === "Walk") {
     const steps = parseInt(req.body.steps,10)
-    con.query(`INSERT INTO kmApp.done_distances (steps,time, who, activity_type) VALUES ('${steps}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+    const kilometers = (steps*0.62/1000)
+
+    con.query(`INSERT INTO kmApp.done_distances (kilometers, steps,time, who, activity_type) VALUES ('${kilometers}','${steps}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
       if (err) throw err;
       res.json("Entry added for Walk!")
       })
@@ -89,6 +91,7 @@ con.query('SELECT * from done_distances', function(err,result) {
 })
 
 app.post('/api/getuserdata', (req,res) => {
+  console.log(req.body)
   const user1 = req.body.user
 
   con.query(`SELECT * FROM done_distances WHERE who = "${user1}"`, function(err,result){
