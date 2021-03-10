@@ -2,6 +2,8 @@ const express = require("express");
 const bodyParser = require("body-parser")
 const cors = require("cors")
 const mysql = require ('mysql2')
+const multer = require('multer')
+
 require ('dotenv').config()
 
 const app = express();
@@ -14,7 +16,9 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(express.static("public"))
+
 
 const con = mysql.createConnection({
   host: process.env.HOST,
@@ -26,9 +30,26 @@ const con = mysql.createConnection({
 con.connect(function(err) {
   if(err) throw err;
   console.log("Connected to database!");
-
-
 })
+
+// MULTER UPLOAD
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+  cb(null, 'img')
+},
+filename: function (req, file, cb) {
+const today = new Date();
+const date = today.getFullYear()+''+(today.getMonth()+1)+''+today.getDate();
+const time = today.getHours() + "" + today.getMinutes() + "" + today.getSeconds();
+  cb(null, date + "" + time + '-' +file.originalname )
+}
+})
+
+const upload = multer({ storage: storage }).single('file')
+
+
+
+
 //Insert data from Form
 app.post("/api/distance", (req,res) => {
 
@@ -39,8 +60,17 @@ if (req.body.password != process.env.SECRETPASS) {
 } else {
 
   if( activity === "Run") {
+    upload(req, res, function (err) {
+      if (err instanceof multer.MulterError) {
+          return res.status(500).json(err)
+      } else if (err) {
+          return res.status(500).json(err)
+      }
+ return res.status(200).send(req.file)
+
+})
     const kilometers = parseInt(req.body.kilometers,10)
-    con.query(`INSERT INTO kmApp.done_distances (kilometers,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+    con.query(`INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
       if (err) throw err;
       res.json("Entry added for Run !")
       })
@@ -50,17 +80,24 @@ if (req.body.password != process.env.SECRETPASS) {
 
   else if (activity === "Bike") {
     const kilometers = parseInt(req.body.kilometers,10)
-    con.query(`INSERT INTO kmApp.done_distances (kilometers,time, who, activity_type) VALUES ('${kilometers}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+    con.query(`INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
       if (err) throw err;
       res.json("Entry added for Bike!")
+      })
+  }
+
+  else if (activity === "Roller Skates") {
+    const kilometers = parseInt(req.body.kilometers,10)
+    con.query(`INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+      if (err) throw err;
+      res.json("Entry added for Roller Skates!")
       })
   }
 
   else if (activity === "Walk") {
     const steps = parseInt(req.body.steps,10)
     const kilometers = (steps*0.62/1000)
-
-    con.query(`INSERT INTO kmApp.done_distances (kilometers, steps,time, who, activity_type) VALUES ('${kilometers}','${steps}','${req.body.time}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+    con.query(`INSERT INTO kmApp.done_distances (kilometers, steps, who, activity_type) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
       if (err) throw err;
       res.json("Entry added for Walk!")
       })
@@ -101,9 +138,17 @@ app.post('/api/getuserdata', (req,res) => {
 })
 
 
-app.post('/api/test', (req,res) => {
-  console.log(req.body)
-  res.send("ok")
+app.post('/api/upload', (req,res) => {
+
+  upload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+        return res.status(500).json(err)
+    } else if (err) {
+        return res.status(500).json(err)
+    }
+return res.status(200).send(req.file)
+
+})
 })
 
 
