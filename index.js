@@ -52,52 +52,30 @@ const upload = multer({ storage: storage }).single('file')
 
 //Insert data from Form
 app.post("/api/distance", (req,res) => {
+  const today = new Date();
+  const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+  const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  const currentDate = date +" "+time
+  const activity = req.body.activity_type
 
-
-const activity = req.body.activity_type
-if (req.body.password != process.env.SECRETPASS) {
+  if (req.body.password != process.env.SECRETPASS) {
   res.send("You have no permission to post data")
 } else {
 
-  if( activity === "Run") {
-    upload(req, res, function (err) {
-      if (err instanceof multer.MulterError) {
-          return res.status(500).json(err)
-      } else if (err) {
-          return res.status(500).json(err)
-      }
- return res.status(200).send(req.file)
-
-})
-    const kilometers = parseInt(req.body.kilometers,10)
-    con.query(`INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+  if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
+        const kilometers = parseInt(req.body.kilometers,10)
+        const sql = `INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
+    con.query(sql, function (err,result) {
       if (err) throw err;
-      res.json("Entry added for Run !")
-      })
-
-  }
-
-
-  else if (activity === "Bike") {
-    const kilometers = parseInt(req.body.kilometers,10)
-    con.query(`INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
-      if (err) throw err;
-      res.json("Entry added for Bike!")
-      })
-  }
-
-  else if (activity === "Roller Skates") {
-    const kilometers = parseInt(req.body.kilometers,10)
-    con.query(`INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
-      if (err) throw err;
-      res.json("Entry added for Roller Skates!")
+      res.json('Entry added for ' + `${req.body.activity_type}` +' !')
       })
   }
 
   else if (activity === "Walk") {
     const steps = parseInt(req.body.steps,10)
     const kilometers = (steps*0.62/1000)
-    con.query(`INSERT INTO kmApp.done_distances (kilometers, steps, who, activity_type) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}')`, function (err,result) {
+    const sql = `INSERT INTO kmApp.done_distances (kilometers, steps, who, activity_type, date_created) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
+    con.query( sql, function (err,result) {
       if (err) throw err;
       res.json("Entry added for Walk!")
       })
@@ -105,14 +83,12 @@ if (req.body.password != process.env.SECRETPASS) {
 
 }
 
-
-
-
  })
 
 //Get all distance in SUM
 app.get("/api/getoveralldistance", (req,res) => {
-  con.query('SELECT SUM(kilometers)+SUM((steps*0.62)/1000) AS doneDistance FROM done_distances', function(err,result) {
+  const sql = 'SELECT SUM(kilometers)+SUM((steps*0.62)/1000) AS doneDistance FROM done_distances'
+  con.query( sql, function(err,result) {
     if (err) throw err;
     res.send(result[0].doneDistance)
   })
@@ -120,7 +96,8 @@ app.get("/api/getoveralldistance", (req,res) => {
 
 //Get All distance without being filtered
 app.get('/api/getalldistance', (req,res) => {
-con.query('SELECT * from done_distances', function(err,result) {
+  const sql = 'SELECT * from done_distances'
+con.query(sql, function(err,result) {
   if(err) throw err;
   res.send(result);
 
@@ -128,16 +105,18 @@ con.query('SELECT * from done_distances', function(err,result) {
 })
 
 app.post('/api/getuserdata', (req,res) => {
-  console.log(req.body)
   const user1 = req.body.user
+  const sql = `SELECT * FROM done_distances WHERE who = "${user1}"`
 
-  con.query(`SELECT * FROM done_distances WHERE who = "${user1}"`, function(err,result){
-    if(err) throw err;
-    res.send(result);
+  con.query(sql, function(err,result){
+    if(err) throw(err);
+    res.send(result)
+    res.status(200);
   })
 })
 
 
+//Upload picture from Form to img folder
 app.post('/api/upload', (req,res) => {
 
   upload(req, res, function (err) {
