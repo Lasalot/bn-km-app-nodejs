@@ -27,22 +27,25 @@ const con = mysql.createConnection({
   database:process.env.DB
 })
 
+app.options('*',cors())
 
-
+var name = []
 // MULTER UPLOAD
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
   cb(null, 'img')
 },
 filename: function (req, file, cb) {
+
 const today = new Date();
 const date = today.getFullYear()+''+(today.getMonth()+1)+''+today.getDate();
 const time = today.getHours() + "" + today.getMinutes() + "" + today.getSeconds();
-  cb(null, date + "" + time + '-' +file.originalname )
+  cb(null, date + "" + time + '-' +file.originalname + "-" + name[0] )
 }
 })
 
 const upload = multer({ storage: storage }).single('file')
+
 
 
 
@@ -54,7 +57,7 @@ app.get("/api/getoveralldistance", async(req,res) => {
   const email = req.query.email
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
-if(isBn > -1 || isWs > -1 ){
+  if(isBn > -1 || isWs > -1 ){
   //If Email allowed
   await con.connect(function(err) {
     if(err) throw err;
@@ -151,6 +154,7 @@ app.post("/api/distance", async(req,res) => {
  })
 
 app.post('/api/getuserdata', (req,res) => {
+
   const email = req.body.email
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
@@ -191,7 +195,12 @@ app.post('/api/upload', (req,res) => {
   return res.status(200).send(req.file)
 
   })
-  } else (res.json({
+name.push(req.query.user)
+setTimeout(function(){
+  name.length=0
+}, 1000)
+  }
+  else (res.json({
     message: "You are not permitted to use this API"
   }))
 
