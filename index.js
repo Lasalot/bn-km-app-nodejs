@@ -124,7 +124,9 @@ app.post("/api/distance", async(req,res) => {
     const activity = req.body.activity_type
 
     if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
-          const kilometers = parseInt(req.body.kilometers,10)
+          const meters = parseInt(req.body.meters,10)
+          console.log(meters)
+          const kilometers = meters/1000
           const sql = `INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
@@ -135,6 +137,7 @@ app.post("/api/distance", async(req,res) => {
     else if (activity === "Walk") {
       const steps = parseInt(req.body.steps,10)
       const kilometers = (steps*0.62/1000)
+      console.log(kilometers)
       const sql = `INSERT INTO kmApp.done_distances (kilometers, steps, who, activity_type, date_created) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
       con.query( sql, function (err,result) {
         if (err) throw err;
@@ -160,7 +163,7 @@ app.post('/api/getuserdata', (req,res) => {
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
     const user1 = req.body.user
-    const sql = `SELECT * FROM done_distances WHERE who = "${user1}"`
+    const sql = `SELECT SUM(kilometers) as "sumkilometer",kilometers,steps,who,activity_type,date_created from done_distances WHERE who = "${user1}"`
 
 
     con.query(sql, function(err,result){
