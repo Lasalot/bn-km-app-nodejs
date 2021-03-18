@@ -163,7 +163,7 @@ app.post('/api/getuserdata', (req,res) => {
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
     const user1 = req.body.user
-    const sql = `SELECT SUM(kilometers) as "sumkilometer",kilometers,steps,who,activity_type,date_created from done_distances WHERE who = "${user1}"`
+    const sql = `SELECT kilometers,steps,who,activity_type,date_created , (select SUM(d2.kilometers) from done_distances d2 where who="${user1}")sumkilometer from done_distances WHERE who = "${user1}"`
 
 
     con.query(sql, function(err,result){
