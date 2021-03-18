@@ -63,7 +63,7 @@ app.get("/api/getoveralldistance", async(req,res) => {
     if(err) throw err;
     console.log("Connected to database!");
   });
-  const sql = 'SELECT SUM(kilometers)+SUM((steps*0.62)/1000) AS doneDistance FROM done_distances'
+  const sql = 'SELECT SUM(kilometers) AS doneDistance FROM done_distances'
   con.query( sql, function(err,result) {
 
     if (err) throw err;
