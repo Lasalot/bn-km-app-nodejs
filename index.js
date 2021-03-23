@@ -3,6 +3,7 @@ const bodyParser = require("body-parser")
 const cors = require("cors")
 const mysql = require ('mysql2')
 const multer = require('multer')
+const axios = require('axios')
 
 require ('dotenv').config()
 
@@ -40,7 +41,7 @@ filename: function (req, file, cb) {
 const today = new Date();
 const date = today.getFullYear()+''+(today.getMonth()+1)+''+today.getDate();
 const time = today.getHours() + "" + today.getMinutes() + "" + today.getSeconds();
-  cb(null, date + "" + time + '-' +file.originalname + "-" + name[0] )
+  cb(null, date + "" + time + "-"+ name[0]+ '-' +file.originalname)
 }
 })
 
@@ -63,7 +64,7 @@ app.get("/api/getoveralldistance", async(req,res) => {
     if(err) throw err;
     console.log("Connected to database!");
   });
-  const sql = 'SELECT SUM(kilometers) AS doneDistance FROM done_distances'
+  const sql = 'SELECT SUM(kilometers) AS doneDistance FROM dev_done_distances'
   con.query( sql, function(err,result) {
 
     if (err) throw err;
@@ -89,7 +90,7 @@ app.get('/api/getalldistance', (req,res) => {
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
-    const sql = 'SELECT * from done_distances  ORDER BY 2 DESC'
+    const sql = 'SELECT * from dev_done_distances  ORDER BY 2 DESC'
     con.query(sql, function(err,result) {
       if(err) throw err;
       res.send(result);
@@ -125,12 +126,13 @@ app.post("/api/distance", async(req,res) => {
 
     if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
           const meters = parseInt(req.body.meters,10)
-          console.log(meters)
           const kilometers = meters/1000
-          const sql = `INSERT INTO kmApp.done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
+          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
-        res.json('Entry added for ' + `${req.body.activity_type}` +' !')
+        axios.post(process.env.SLACKAPP, {
+          text: req.body.who + " just added " + kilometers+"Kms " +"! We are closer to our goal, yaay!:tada:"
+        }).then(res.send())
         })
     }
 
@@ -138,10 +140,12 @@ app.post("/api/distance", async(req,res) => {
       const steps = parseInt(req.body.steps,10)
       const kilometers = (steps*0.62/1000)
       console.log(kilometers)
-      const sql = `INSERT INTO kmApp.done_distances (kilometers, steps, who, activity_type, date_created) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
+      const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
       con.query( sql, function (err,result) {
         if (err) throw err;
-        res.json("Entry added for Walk!")
+        axios.post(process.env.SLACKAPP, {
+          text: req.body.who + " just added " + kilometers+"Kms " +"! We are closer to our goal, yaay!:tada:"
+        }).then(res.send())
         })
     }
   } else (res.json({
@@ -163,7 +167,7 @@ app.post('/api/getuserdata', (req,res) => {
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
     const user1 = req.body.user
-    const sql = `SELECT kilometers,steps,who,activity_type,date_created , (select SUM(d2.kilometers) from done_distances d2 where who="${user1}")sumkilometer from done_distances WHERE who = "${user1}"`
+    const sql = `SELECT kilometers,steps,who,activity_type,date_created , (select SUM(d2.kilometers) from dev_done_distances d2 where who="${user1}")sumkilometer from dev_done_distances WHERE who = "${user1}"`
 
 
     con.query(sql, function(err,result){
