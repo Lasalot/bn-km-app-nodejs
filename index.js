@@ -62,7 +62,7 @@ app.get("/api/getoveralldistance", async(req,res) => {
   //If Email allowed
   await con.connect(function(err) {
     if(err) throw err;
-    console.log("Connected to database!");
+
   });
   const sql = 'SELECT SUM(kilometers) AS doneDistance FROM dev_done_distances'
   con.query( sql, function(err,result) {
@@ -110,13 +110,13 @@ app.get('/api/getalldistance', (req,res) => {
 //Insert data from Form
 app.post("/api/distance", async(req,res) => {
   const email = req.body.email
-  const isBn = email.indexOf("@bitninja.io")
-  const isWs = email.indexOf ("@web-szerver.hu")
+  const isBn = email.indexOf(process.env.BNEMAIL)
+  const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
 
     await con.connect(function(err) {
       if(err) throw err;
-      console.log("Connected to database!");
+
     });
     const today = new Date();
     const date = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
@@ -127,26 +127,29 @@ app.post("/api/distance", async(req,res) => {
     if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
           const meters = parseInt(req.body.meters,10)
           const kilometers = meters/1000
+          const fixedKilometers = kilometers.toFixed(2)
           const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
-        axios.post(process.env.SLACKAPP, {
-          text: req.body.who + " just added " + kilometers+"Kms " +"! We are closer to our goal, yaay!:tada:"
+        axios.post(process.env.DEVSLACKAPP, {
+          text: req.body.who + " just added " +  fixedKilometers +"Kms " +"! We are closer to our goal, yaay!:tada:"
         }).then(res.send())
-        })
+        });
+        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
     }
 
     else if (activity === "Walk") {
       const steps = parseInt(req.body.steps,10)
       const kilometers = (steps*0.62/1000)
-      console.log(kilometers)
+      const fixedKilometers = kilometers.toFixed(2)
       const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
       con.query( sql, function (err,result) {
         if (err) throw err;
-        axios.post(process.env.SLACKAPP, {
-          text: req.body.who + " just added " + kilometers+"Kms " +"! We are closer to our goal, yaay!:tada:"
+        axios.post(process.env.DEVSLACKAPP, {
+          text: req.body.who + " just added " + fixedKilometers +"Kms " +"! We are closer to our goal, yaay!:tada:"
         }).then(res.send())
         })
+        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
     }
   } else (res.json({
     message: "You are not permitted to use this API"
@@ -167,7 +170,7 @@ app.post('/api/getuserdata', (req,res) => {
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
     const user1 = req.body.user
-    const sql = `SELECT kilometers,steps,who,activity_type,date_created , (select SUM(d2.kilometers) from dev_done_distances d2 where who="${user1}")sumkilometer from dev_done_distances WHERE who = "${user1}"`
+    const sql = `SELECT id,kilometers,steps,who,activity_type,date_created , (select SUM(d2.kilometers) from dev_done_distances d2 where who="${user1}")sumkilometer from dev_done_distances WHERE who = "${user1}"`
 
 
     con.query(sql, function(err,result){
@@ -188,8 +191,8 @@ app.post('/api/getuserdata', (req,res) => {
 //Upload picture from Form to img folder
 app.post('/api/upload', (req,res) => {
   const email = req.query.email
-  const isBn = email.indexOf("@bitninja.io")
-  const isWs = email.indexOf ("@web-szerver.hu")
+  const isBn = email.indexOf(process.env.BNEMAIL)
+  const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
     upload(req, res, function (err) {
 
@@ -212,6 +215,35 @@ setTimeout(function(){
   }))
 
 
+})
+
+app.delete("/api/distance", (req,res) => {
+  const email = req.query.email
+  const who = req.query.who
+  const id = req.query.id
+  const kilometers = req.query.distance
+  const activity_type = req.query.mode
+  const isBn = email.indexOf(process.env.BNEMAIL)
+  const isWs = email.indexOf (process.env.WSEMAIL)
+
+
+  if(isBn > -1 || isWs > -1){
+      if(who && id && kilometers && activity_type) {
+        const sql = `DELETE FROM dev_done_distances WHERE id=${id} AND who="${who}"`
+con.query(sql, function(err,result){
+    if(err) res.status(500);
+  res.status(200);
+  console.log(`${who} has deleted his/her ${activity_type} entry with the amount of ${kilometers}Kms `)
+  res.send()
+})
+      } else (
+        res.status(403),
+        res.json({
+        message: "You are not permitted to use this API or information is missing!"
+
+      })
+      )
+  }
 })
 
 
