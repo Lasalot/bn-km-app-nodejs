@@ -30,7 +30,8 @@ const con = mysql.createConnection({
 
 app.options('*',cors())
 
-var name = []
+var name = [] // Needed for picture upload name
+var randomText = [] // Needed for random Slack message
 // MULTER UPLOAD
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -90,7 +91,7 @@ app.get('/api/getalldistance', (req,res) => {
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
-    const sql = 'SELECT * from dev_done_distances  ORDER BY 2 DESC'
+    const sql = 'SELECT * from dev_done_distances  ORDER BY 6 DESC LIMIT 10'
     con.query(sql, function(err,result) {
       if(err) throw err;
       res.send(result);
@@ -105,16 +106,76 @@ app.get('/api/getalldistance', (req,res) => {
 
 })
 
-// POST REQUESTS //
-
-//Insert data from Form
-app.post("/api/distance", async(req,res) => {
-  const email = req.body.email
+//Get All distance without being filtered
+app.get('/api/getalldistance/overall', (req,res) => {
+  const email = req.query.email
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
+    const sql = 'SELECT * from dev_done_distances  ORDER BY 6 DESC'
+    con.query(sql, function(err,result) {
+      if(err) throw err;
+      res.send(result);
 
-    await con.connect(function(err) {
+    })
+  } else (res.json({
+    message: "You are not permitted to use this API"
+  }))
+
+
+
+
+})
+
+//GET TOP PERFORMER
+app.get('/api/monthlytracker/topperformer', (req,res) => {
+  const email = req.query.email
+  const isBn = email.indexOf(process.env.BNEMAIL)
+  const isWs = email.indexOf (process.env.WSEMAIL)
+  if(isBn > -1 || isWs > -1 ){
+    const sql = 'SELECT SUM(kilometers) as kilometers,who  FROM dev_done_distances WHERE MONTH(date_created) = MONTH(CURRENT_DATE()) GROUP BY who ORDER BY 1 DESC LIMIT 1'
+    con.query(sql, function(err,result) {
+      if(err) throw err;
+
+      res.send(result)
+
+    })
+  } else (res.json({
+    message: "You are not permitted to use this API"
+  }))
+})
+
+//GET SUM OF ACTIVITY_TYPES FOR CURRENT MONTH
+app.get('/api/monthlytracker/sumactivity', (req,res) => {
+  const email = req.query.email
+  const isBn = email.indexOf(process.env.BNEMAIL)
+  const isWs = email.indexOf (process.env.WSEMAIL)
+  if(isBn > -1 || isWs > -1 ){
+    const sql = 'SELECT ROW_NUMBER() OVER (ORDER BY SUM(kilometers) DESC )row_num, SUM(kilometers) as sumActivity,activity_type, id FROM dev_done_distances WHERE MONTH(date_created) = MONTH(CURRENT_DATE()) GROUP BY activity_type'
+    con.query(sql, function(err,result) {
+      if(err) throw err;
+
+      res.send(result)
+
+    })
+  } else (res.json({
+    message: "You are not permitted to use this API"
+  }))
+})
+
+// POST REQUESTS //
+
+
+//Insert data from Form
+app.post("/api/distance", (req,res) => {
+  const email = req.body.email
+  const isBn = email.indexOf(process.env.BNEMAIL)
+  const isWs = email.indexOf (process.env.WSEMAIL)
+
+
+  if(isBn > -1 || isWs > -1 ){
+
+    con.connect(function(err) {
       if(err) throw err;
 
     });
@@ -123,30 +184,46 @@ app.post("/api/distance", async(req,res) => {
     const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
     const currentDate = date +" "+time
     const activity = req.body.activity_type
+    const who = req.body.who
+    const kms = (parseInt(req.body.meters,10)/1000)
+    /// RANDOM SLACK MESSAGE ///
+    const randomNumber = Math.round(Math.random(4))
+    if(randomNumber === 0) {randomText.push(`Nice job ${who}! With your ${kms}kms we are closer to our goal!`)}
+    else if (randomNumber === 1) {randomText.push(`${kms} kms! Good going, ${who} you are truly a champ! Keep up the great work.`)}
+    else if (randomNumber === 2) {randomText.push(`${who} you just did ${kms} kms, that is more than 0, right? Every steps counts!`)}
+    else if (randomNumber === 3) {randomText.push(`You went for a ${activity_type} today, huh? You did ${kms} kms , so you are definitely not a couchpotato! Keep going!`)}
+    /////RANDOM SLACK MESSAGE END /////
 
     if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
+
           const meters = parseInt(req.body.meters,10)
           const kilometers = meters/1000
           const fixedKilometers = kilometers.toFixed(2)
-          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
+
+
+          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
         axios.post(process.env.DEVSLACKAPP, {
-          text: req.body.who + " just added " +  fixedKilometers +"Kms " +"! We are closer to our goal, yaay!:tada:"
+          text : randomText[0]
         }).then(res.send())
         });
         console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
+        setTimeout(() => {randomText.length=0},1000)
     }
 
     else if (activity === "Walk") {
       const steps = parseInt(req.body.steps,10)
+      const currentKms = parseInt(req.body.currentKms,10)
       const kilometers = (steps*0.62/1000)
       const fixedKilometers = kilometers.toFixed(2)
-      const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}')`
+      const kmAfterUpload = (currentKms+kilometers)
+
+      const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created,overall_km_after_upload) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
       con.query( sql, function (err,result) {
         if (err) throw err;
         axios.post(process.env.DEVSLACKAPP, {
-          text: req.body.who + " just added " + fixedKilometers +"Kms " +"! We are closer to our goal, yaay!:tada:"
+          text: randomText[0]
         }).then(res.send())
         })
         console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
@@ -248,7 +325,7 @@ con.query(sql, function(err,result){
 
 
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8100;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`)
 })
