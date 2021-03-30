@@ -226,7 +226,8 @@ app.post("/api/distance", (req,res) => {
           text: randomText[0]
         }).then(res.send())
         })
-        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
+        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`),
+        setTimeout(() => {randomText.length=0},1000)
     }
   } else (res.json({
     message: "You are not permitted to use this API"
