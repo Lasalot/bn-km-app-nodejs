@@ -91,7 +91,7 @@ app.get('/api/getalldistance', (req,res) => {
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
-    const sql = 'SELECT * from dev_done_distances  ORDER BY 6 DESC LIMIT 10'
+    const sql = 'SELECT ROW_NUMBER() OVER (ORDER BY date_created DESC )row_num, who, kilometers, id, activity_type FROM dev_done_distances LIMIT 10'
     con.query(sql, function(err,result) {
       if(err) throw err;
       res.send(result);
