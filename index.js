@@ -197,11 +197,13 @@ app.post("/api/distance", (req,res) => {
     if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
 
           const meters = parseInt(req.body.meters,10)
+		  const currentKms = parseInt(req.body.currentKms,10)
           const kilometers = meters/1000
           const fixedKilometers = kilometers.toFixed(2)
+		  const kmAfterUpload = (currentKms+kilometers)
 
 
-          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}')`
+          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created,overall_km_after_upload) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}','${kmAfterUpload}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
         axios.post(process.env.DEVSLACKAPP, {
