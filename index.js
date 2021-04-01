@@ -20,7 +20,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"))
 
-
 const con = mysql.createConnection({
   host: process.env.HOST,
   user:process.env.USER,
@@ -28,10 +27,13 @@ const con = mysql.createConnection({
   database:process.env.DB
 })
 
+
 app.options('*',cors())
 
 var name = [] // Needed for picture upload name
 var randomText = [] // Needed for random Slack message
+var randomPhysioText = []
+
 // MULTER UPLOAD
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -187,23 +189,20 @@ app.post("/api/distance", (req,res) => {
     const who = req.body.who
     const kms = (parseInt(req.body.meters,10)/1000)
     /// RANDOM SLACK MESSAGE ///
-    const randomNumber = Math.round(Math.random(4))
-    if(randomNumber === 0) {randomText.push(`Nice job ${who}! With your ${kms}kms we are closer to our goal!`)}
-    else if (randomNumber === 1) {randomText.push(`${kms} kms! Good going, ${who} you are truly a champ! Keep up the great work.`)}
-    else if (randomNumber === 2) {randomText.push(`${who} you just did ${kms} kms, that is more than 0, right? Every steps counts!`)}
-    else if (randomNumber === 3) {randomText.push(`You went for a ${activity_type} today, huh? You did ${kms} kms , so you are definitely not a couchpotato! Keep going!`)}
+    const randomNumber = Math.round(Math.random() * 3)
+    if(randomNumber === 0) {randomText.push(`Nice job ${who}! With your ${kms}kms we are closer to our goal! :world_map::man-running: `)}
+    else if (randomNumber === 1) {randomText.push(`${kms} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`)}
+    else if (randomNumber === 2) {randomText.push(`${who} you just did ${kms} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`)}
+    else if (randomNumber === 3) {randomText.push(`You went for a ${activity_type} today, huh? You did ${kms} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`)}
     /////RANDOM SLACK MESSAGE END /////
 
-    if( activity === "Run" || activity === "Bike" || activity === "Roller Skates" ) {
-
+    if( activity === "Run" || activity === "Bike" || activity === "Roller Skates") {
+      const currentKms = parseInt(req.body.currentKms,10)
           const meters = parseInt(req.body.meters,10)
-		  const currentKms = parseInt(req.body.currentKms,10)
           const kilometers = meters/1000
+          const kmAfterUpload = (currentKms+kilometers)
           const fixedKilometers = kilometers.toFixed(2)
-		  const kmAfterUpload = (currentKms+kilometers)
-
-
-          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created,overall_km_after_upload) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}','${kmAfterUpload}')`
+          const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created, overall_km_after_upload) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
         axios.post(process.env.DEVSLACKAPP, {
@@ -213,6 +212,29 @@ app.post("/api/distance", (req,res) => {
         console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
         setTimeout(() => {randomText.length=0},1000)
     }
+
+    else if(activity === "Physiotherapy") {
+      const currentKms = parseInt(req.body.currentKms,10)
+      const meters = parseInt(req.body.meters,10)
+      const kilometers = meters/1000
+      const kmAfterUpload = (currentKms+kilometers)
+      const fixedKilometers = kilometers.toFixed(2)
+      const randomPhysioNumber = Math.round(Math.random())
+      if  (randomPhysioNumber === 0) {
+        randomPhysioText.push(`${who}, Your body now is not like a 50 years old stuck rusty screw. You just did some physiotherapy! You have earned 3Kms :muscle: :woman-cartwheeling:`)
+      } else if (randomPhysioNumber === 1) {
+        randomPhysioText.push(`${who}, Your body is a temple they say, keep it moved. That is exactly what you did now with physiotherapy! You have earned 3Kms :woman-cartwheeling: :classical_building:`)
+      }
+      const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created, overall_km_after_upload) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
+  con.query(sql, function (err,result) {
+    if (err) throw err;
+    axios.post(process.env.DEVSLACKAPP, {
+      text : randomPhysioText[0]
+    }).then(res.send())
+    });
+    console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
+    setTimeout(() => {randomPhysioText.length=0},1000)
+}
 
     else if (activity === "Walk") {
       const steps = parseInt(req.body.steps,10)
@@ -228,9 +250,10 @@ app.post("/api/distance", (req,res) => {
           text: randomText[0]
         }).then(res.send())
         })
-        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`),
-        setTimeout(() => {randomText.length=0},1000)
+        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
+	setTimeout(() => {randomText.length=0},1000)
     }
+
   } else (res.json({
     message: "You are not permitted to use this API"
   }))
