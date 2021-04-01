@@ -31,8 +31,9 @@ const con = mysql.createConnection({
 app.options('*',cors())
 
 var name = [] // Needed for picture upload name
-var randomText = [] // Needed for random Slack message
+var randomText = [] // Needed for random Slack message (Bike, Run, Roller)
 var randomPhysioText = []
+var randomTextForWalk = []
 
 // MULTER UPLOAD
 var storage = multer.diskStorage({
@@ -187,13 +188,11 @@ app.post("/api/distance", (req,res) => {
     const currentDate = date +" "+time
     const activity = req.body.activity_type
     const who = req.body.who
-    const kms = (parseInt(req.body.meters,10)/1000)
+
+
     /// RANDOM SLACK MESSAGE ///
-    const randomNumber = Math.round(Math.random() * 3)
-    if(randomNumber === 0) {randomText.push(`Nice job ${who}! With your ${kms}kms we are closer to our goal! :world_map::man-running: `)}
-    else if (randomNumber === 1) {randomText.push(`${kms} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`)}
-    else if (randomNumber === 2) {randomText.push(`${who} you just did ${kms} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`)}
-    else if (randomNumber === 3) {randomText.push(`You went for a ${activity_type} today, huh? You did ${kms} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`)}
+
+
     /////RANDOM SLACK MESSAGE END /////
 
     if( activity === "Run" || activity === "Bike" || activity === "Roller Skates") {
@@ -201,7 +200,14 @@ app.post("/api/distance", (req,res) => {
           const meters = parseInt(req.body.meters,10)
           const kilometers = meters/1000
           const kmAfterUpload = (currentKms+kilometers)
+          const activity_type = req.body.activity_type
           const fixedKilometers = kilometers.toFixed(2)
+          //MESSAGES//
+          let messages =[`Nice job ${who}! With your ${kilometers}kms we are closer to our goal! :world_map::man-running: `,`${kilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${kilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`You went for a ${activity_type} today, huh? You did ${kilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+          let numberOfMessages = messages.length;
+          let randomMessage = Math.floor(Math.random()* numberOfMessages)
+          randomText.push(`${messages[randomMessage]}`)
+          ///////////
           const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created, overall_km_after_upload) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
       con.query(sql, function (err,result) {
         if (err) throw err;
@@ -219,12 +225,13 @@ app.post("/api/distance", (req,res) => {
       const kilometers = meters/1000
       const kmAfterUpload = (currentKms+kilometers)
       const fixedKilometers = kilometers.toFixed(2)
-      const randomPhysioNumber = Math.round(Math.random())
-      if  (randomPhysioNumber === 0) {
-        randomPhysioText.push(`${who}, Your body now is not like a 50 years old stuck rusty screw. You just did some physiotherapy! You have earned 3Kms :muscle: :woman-cartwheeling:`)
-      } else if (randomPhysioNumber === 1) {
-        randomPhysioText.push(`${who}, Your body is a temple they say, keep it moved. That is exactly what you did now with physiotherapy! You have earned 3Kms :woman-cartwheeling: :classical_building:`)
-      }
+      let messages = [`${who}, Your body is a temple they say, keep it moved. That is exactly what you did now with physiotherapy! You have earned 3Kms :woman-cartwheeling: :classical_building:`,
+      `${who}, Your body now is not like a 50 years old stuck rusty screw. You just did some physiotherapy! You have earned 3Kms :muscle: :woman-cartwheeling:`,
+      `${who}, You are now fitter than the gods of Olympus, keep it up champ! Did you know that Hippocrates also did Physiotherapy? You have earned 3 Kms! :thinking_face: :woman-cartwheeling:`,
+      `${who}, I bet you feel refreshed after that! It sure does feel good to stretch your muscles with some physiotherapy! You have earned 3Kms.:woman-cartwheeling:`];
+let numberOfMessages = messages.length;
+let randomMessage = Math.floor(Math.random()* numberOfMessages);
+randomPhysioText.push(`${messages[randomMessage]}`);
       const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created, overall_km_after_upload) VALUES ('${kilometers}','0','${who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
   con.query(sql, function (err,result) {
     if (err) throw err;
@@ -242,16 +249,23 @@ app.post("/api/distance", (req,res) => {
       const kilometers = (steps*0.62/1000)
       const fixedKilometers = kilometers.toFixed(2)
       const kmAfterUpload = (currentKms+kilometers)
+      const activity_type = req.body.activity_type
+      ///MESSAGES///
+      let messages =[`Nice job ${who}! With your ${kilometers}kms we are closer to our goal! :world_map::man-running: `,`${kilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${kilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`You went for a ${activity_type} today, huh? You did ${kilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+      let numberOfMessages = messages.length;
+      let randomMessage = Math.floor(Math.random()* numberOfMessages)
+      randomTextForWalk.push(`${messages[randomMessage]}`)
+      //////
 
       const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created,overall_km_after_upload) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
       con.query( sql, function (err,result) {
         if (err) throw err;
         axios.post(process.env.DEVSLACKAPP, {
-          text: randomText[0]
+          text: randomTextForWalk[0]
         }).then(res.send())
         })
         console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
-	setTimeout(() => {randomText.length=0},1000)
+	setTimeout(() => {randomTextForWalk.length=0},1000)
     }
 
   } else (res.json({
