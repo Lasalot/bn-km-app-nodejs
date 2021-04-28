@@ -136,7 +136,7 @@ app.get('/api/monthlytracker/topperformer', (req,res) => {
   const isBn = email.indexOf(process.env.BNEMAIL)
   const isWs = email.indexOf (process.env.WSEMAIL)
   if(isBn > -1 || isWs > -1 ){
-    const sql = 'SELECT SUM(kilometers) as kilometers,who  FROM dev_done_distances WHERE MONTH(date_created) = MONTH(CURRENT_DATE()) GROUP BY who ORDER BY 1 DESC LIMIT 1'
+    const sql = 'SELECT SUM(kilometers) as kilometers,who  FROM dev_done_distances WHERE MONTH(date_created) = MONTH(CURRENT_DATE()) GROUP BY who ORDER BY 1 DESC LIMIT 2'
     con.query(sql, function(err,result) {
       if(err) throw err;
 
@@ -165,6 +165,23 @@ app.get('/api/monthlytracker/sumactivity', (req,res) => {
     message: "You are not permitted to use this API"
   }))
 })
+
+
+//Get activity_type number in the current month (required for charts)//
+
+app.get("/api/charts/activitytype", (req,res) => {
+
+    const sql = 'SELECT COUNT(activity_type) as sumactivity, activity_type FROM dev_done_distances  where MONTH(date_created) = MONTH(CURRENT_DATE()) group by activity_type ORDER BY activity_type '
+    con.query(sql, function(err,result) {
+      if(err) throw err;
+
+      res.json(result)
+
+    })
+
+})
+
+//////////
 
 // POST REQUESTS //
 
@@ -203,7 +220,7 @@ app.post("/api/distance", (req,res) => {
           const activity_type = req.body.activity_type
           const fixedKilometers = kilometers.toFixed(2)
           //MESSAGES//
-          let messages =[`Nice job ${who}! With your ${kilometers}kms we are closer to our goal! :world_map::man-running: `,`${kilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${kilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`You went for a ${activity_type} today, huh? You did ${kilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+          let messages =[`Nice job ${who}! With your ${fixedKilometers}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
           let numberOfMessages = messages.length;
           let randomMessage = Math.floor(Math.random()* numberOfMessages)
           randomText.push(`${messages[randomMessage]}`)
@@ -251,7 +268,7 @@ randomPhysioText.push(`${messages[randomMessage]}`);
       const kmAfterUpload = (currentKms+kilometers)
       const activity_type = req.body.activity_type
       ///MESSAGES///
-      let messages =[`Nice job ${who}! With your ${kilometers}kms we are closer to our goal! :world_map::man-running: `,`${kilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${kilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`You went for a ${activity_type} today, huh? You did ${kilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+      let messages =[`Nice job ${who}! With your ${fixedKilometers}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
       let numberOfMessages = messages.length;
       let randomMessage = Math.floor(Math.random()* numberOfMessages)
       randomTextForWalk.push(`${messages[randomMessage]}`)
