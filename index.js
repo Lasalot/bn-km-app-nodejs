@@ -4,7 +4,7 @@ const cors = require("cors")
 const mysql = require ('mysql2')
 const multer = require('multer')
 const axios = require('axios')
-const CronJob = require('cron').CronJob
+const cron = require('node-cron')
 
 require ('dotenv').config()
 
@@ -381,7 +381,7 @@ con.query(sql, function(err,result){
 })
 
 
-var job = new CronJob('0 9 1 * *', function() {
+cron.schedule('0 9 1 * *', () => {
   let sql = `SELECT SUM(kilometers) , who
   from kmApp.done_distances dd
   WHERE MONTH(date_created) = MONTH(current_date - INTERVAL 1 MONTH)
@@ -405,7 +405,7 @@ var job = new CronJob('0 9 1 * *', function() {
   
   })
   
-  job.start()
+  
   
 
 
