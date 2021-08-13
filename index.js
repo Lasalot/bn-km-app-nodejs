@@ -4,11 +4,11 @@ const cors = require("cors")
 const mysql = require ('mysql2')
 const multer = require('multer')
 const axios = require('axios')
+const CronJob = require('cron').CronJob
 
 require ('dotenv').config()
 
 const app = express();
-
 
 
 var corsOptions = {
@@ -22,7 +22,7 @@ app.use(express.static("public"))
 
 const con = mysql.createConnection({
   host: process.env.HOST,
-  user:process.env.USER,
+  user:process.env.USERNAME,
   password:process.env.PASSWORD,
   database:process.env.DB
 })
@@ -379,6 +379,34 @@ con.query(sql, function(err,result){
       )
   }
 })
+
+
+var job = new CronJob('0 9 1 * *', function() {
+  let sql = `SELECT SUM(kilometers) , who
+  from kmApp.done_distances dd
+  WHERE MONTH(date_created) = MONTH(current_date - INTERVAL 1 MONTH)
+  group by who
+  ORDER BY 1 DESC
+  LIMIT 1
+  `
+  
+  con.query(sql,function(err,result){
+    if(err){
+      res.status(500)
+    } else {
+      let champion = result[0].who
+      var message = {'text':`The champion of last month is ${champion}`}
+      axios.post(process.env.ANNA, message)
+      res.json({'text':'OK'})
+    }
+  })
+  
+  
+  
+  })
+  
+  job.start()
+  
 
 
 
