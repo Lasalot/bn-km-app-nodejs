@@ -266,7 +266,7 @@ randomPhysioText.push(`${messages[randomMessage]}`);
   const activity_type = req.body.activity_type
   const fixedKilometers = kilometers.toFixed(2)
   //MESSAGES//
-  let messages =[`Nice job ${who}! With your ${fixedKilometers}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers * 4} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers*4} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers*4} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+  let messages =[`Nice job ${who}! With your ${fixedKilometers*4}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers * 4} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers*4} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers*4} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
   let numberOfMessages = messages.length;
   let randomMessage = Math.floor(Math.random()* numberOfMessages)
   randomText.push(`${messages[randomMessage]}`)
@@ -282,7 +282,7 @@ console.log(`${req.body.who} has added ${kilometers*4}Kms of ${activity} on ${cu
 setTimeout(() => {randomText.length=0},1000)
 }
 
-    else if (activity === "Walk") {
+else if (activity === "Walk") {
       const steps = parseInt(req.body.steps,10)
       const currentKms = parseInt(req.body.currentKms,10)
       const kilometers = (steps*0.62/1000)
