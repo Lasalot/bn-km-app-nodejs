@@ -212,7 +212,7 @@ app.post("/api/distance", (req,res) => {
 
     /////RANDOM SLACK MESSAGE END /////
 
-    if( activity === "Run" || activity === "Bike" || activity === "Roller Skates") {
+    if( activity === "Bike" || activity === "Roller Skates") {
       const currentKms = parseInt(req.body.currentKms,10)
           const meters = parseInt(req.body.meters,10)
           const kilometers = meters/1000
@@ -258,6 +258,28 @@ randomPhysioText.push(`${messages[randomMessage]}`);
     });
     console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
     setTimeout(() => {randomPhysioText.length=0},1000)
+} else if (activity === "Run") {
+  const currentKms = parseInt(req.body.currentKms,10)
+  const meters = parseInt(req.body.meters,10)
+  const kilometers = meters/1000
+  const kmAfterUpload = (currentKms+(kilometers*4))
+  const activity_type = req.body.activity_type
+  const fixedKilometers = kilometers.toFixed(2)
+  //MESSAGES//
+  let messages =[`Nice job ${who}! With your ${fixedKilometers}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers * 4} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers*4} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers*4} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+  let numberOfMessages = messages.length;
+  let randomMessage = Math.floor(Math.random()* numberOfMessages)
+  randomText.push(`${messages[randomMessage]}`)
+  ///////////
+  const sql = `INSERT INTO kmApp.dev_done_distances (kilometers,steps, who, activity_type, date_created, overall_km_after_upload) VALUES ('${kilometers * 4}','0','${who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
+con.query(sql, function (err,result) {
+if (err) throw err;
+axios.post(process.env.DEVSLACKAPP, {
+  text : randomText[0]
+}).then(res.send())
+});
+console.log(`${req.body.who} has added ${kilometers*4}Kms of ${activity} on ${currentDate}`)
+setTimeout(() => {randomText.length=0},1000)
 }
 
     else if (activity === "Walk") {
@@ -265,35 +287,29 @@ randomPhysioText.push(`${messages[randomMessage]}`);
       const currentKms = parseInt(req.body.currentKms,10)
       const kilometers = (steps*0.62/1000)
       const fixedKilometers = kilometers.toFixed(2)
-      const kmAfterUpload = (currentKms+kilometers)
+      const kmAfterUpload = (currentKms+(kilometers*4))
       const activity_type = req.body.activity_type
       ///MESSAGES///
-      let messages =[`Nice job ${who}! With your ${fixedKilometers}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
+      let messages =[`Nice job ${who}! With your ${fixedKilometers*4}kms we are closer to our goal! :world_map::man-running: `,`${fixedKilometers * 4} kms! Good going, ${who} you are truly a champ! Keep up the great work. :tada: :muscle:`,`${who} you just did ${fixedKilometers*4} kms, that is more than 0, right? Every steps counts! :clap: :woman-cartwheeling:`,`${who}, You went for a ${activity_type} today, huh? You did ${fixedKilometers*4} kms , so you are definitely not a couchpotato! Keep going! :potato: :x: :ninja:`]
       let numberOfMessages = messages.length;
       let randomMessage = Math.floor(Math.random()* numberOfMessages)
       randomTextForWalk.push(`${messages[randomMessage]}`)
       //////
 
-      const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created,overall_km_after_upload) VALUES ('${kilometers}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
+      const sql = `INSERT INTO kmApp.dev_done_distances (kilometers, steps, who, activity_type, date_created,overall_km_after_upload) VALUES ('${kilometers * 4}','${steps}','${req.body.who}','${req.body.activity_type}', '${currentDate}', '${kmAfterUpload}')`
       con.query( sql, function (err,result) {
         if (err) throw err;
         axios.post(process.env.DEVSLACKAPP, {
           text: randomTextForWalk[0]
         }).then(res.send())
         })
-        console.log(`${req.body.who} has added ${kilometers}Kms of ${activity} on ${currentDate}`)
+        console.log(`${req.body.who} has added ${kilometers*4}Kms of ${activity} on ${currentDate}`)
 	setTimeout(() => {randomTextForWalk.length=0},1000)
     }
 
   } else (res.json({
     message: "You are not permitted to use this API"
   }))
-
-
-
-
-
-
 
  })
 
